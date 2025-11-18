@@ -2,7 +2,6 @@
 import "./App.css";
 import { ZoomMtg } from "@zoom/meetingsdk";
 import { useEffect, useRef, useState } from "react";
-import { SupervisingPhysicianCard } from "./supervisor_info";
 
 /* -------------------------------------------------
    1. Pre-load the SDK
@@ -41,8 +40,6 @@ function App() {
   const signatureExpRef = useRef<number | null>(null);
   const [joining, setJoining] = useState(false);
   const [inMeeting, setInMeeting] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
-  const [isVideoOn, setIsVideoOn] = useState(false);
   const [hostInvited, setHostInvited] = useState(false);
 
   /* ------------------- Signature fetch ------------------- */
@@ -292,48 +289,6 @@ function App() {
     setTimeout(() => attemptClick(0), 300);
   };
 
-  const toggleMute = () => {
-    if (typeof ZoomMtg.mute !== "function") return;
-    ZoomMtg.mute({
-      userId: 0,
-      mute: !isMuted,
-      success: () => setIsMuted(!isMuted),
-      error: (e: any) => console.error("mute error", e),
-    });
-  };
-
-  const toggleVideo = async () => {
-    try {
-      const zoom = (window as any).ZoomMtg;
-      if (!zoom || !zoom.stream) {
-        console.warn("Zoom stream API not available yet");
-        return;
-      }
-
-      const stream = zoom.stream;
-
-      // prevent rapid toggle issues
-      setIsVideoOn((prev) => prev);
-
-      if (isVideoOn) {
-        await stream.stopVideo();
-        setIsVideoOn(false);
-      } else {
-        await stream.startVideo();
-        setIsVideoOn(true);
-      }
-
-    } catch (err) {
-      console.error("toggleVideo error", err);
-    }
-  };
-
-  const leaveMeeting = () => {
-    if (typeof ZoomMtg.leaveMeeting === "function") ZoomMtg.leaveMeeting({});
-    setInMeeting(false);
-    setHostInvited(false);
-  };
-
   /* -------------------------------------------------
      4. Render
      ------------------------------------------------- */
@@ -476,25 +431,5 @@ function App() {
   );
 }
 
-/* Shared button style */
-const btnStyle = (bg: string) => ({
-  minWidth: 48,
-  height: 48,
-  padding: "0 8px",
-  borderRadius: "50%",
-  background: bg,
-  color: "#fff",
-  border: "none",
-  fontSize: "0.875rem",
-  fontWeight: 500,
-  cursor: "pointer",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  whiteSpace: "nowrap",
-  boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-  transition: "all 0.2s ease",
-  userSelect: "none" as const,
-});
 
 export default App;
