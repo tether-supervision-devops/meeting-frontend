@@ -182,16 +182,9 @@ function App() {
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === "ASK_FOR_HELP") {
-        if (ZoomMtg && typeof ZoomMtg.askForHelp === "function") {
-          ZoomMtg.askForHelp({
-            success: () => window.parent.postMessage({ type: "ASK_FOR_HELP_SUCCESS" }, "*"),
-            error: (err: any) => window.parent.postMessage(
-              { type: "ASK_FOR_HELP_ERROR", reason: err?.reason || "Unknown error" },
-              "*"
-            ),
-          });
-        }
+      if (event.data?.type === "ASK_FOR_HELP" || event.data?.type === "INVITE_HOST") {
+        // Reuse the same logic as the in-app button
+        inviteHost();
       }
     };
     window.addEventListener("message", handleMessage);
@@ -206,8 +199,8 @@ function App() {
       const root = document.getElementById("zmmtg-root") as HTMLDivElement | null;
       if (!root) return;
 
-      const containerWidth = window.innerWidth;
-      const containerHeight = window.innerHeight;
+      const containerWidth = document.documentElement.clientWidth || window.innerWidth;
+      const containerHeight = document.documentElement.clientHeight || window.innerHeight;
 
       // Compute scale so Zoom fits the current container width
       const scale = containerWidth / baseWidth;
@@ -225,7 +218,30 @@ function App() {
 
     applyScale();
     window.addEventListener("resize", applyScale);
-    return () => window.removeEventListener("resize", applyScale);
+    // Listen for orientation changes via matchMedia and orientationchange
+    const mq = window.matchMedia("(orientation: portrait)");
+    if (mq && mq.addEventListener) {
+      mq.addEventListener("change", applyScale);
+    } else if (mq && (mq as any).addListener) {
+      // Safari fallback
+      (mq as any).addListener(applyScale);
+    }
+
+    window.addEventListener("orientationchange", applyScale);
+
+    return () => {
+      window.removeEventListener("resize", applyScale);
+
+      const mq = window.matchMedia("(orientation: portrait)");
+      if (mq && mq.removeEventListener) {
+        mq.removeEventListener("change", applyScale);
+      } else if (mq && (mq as any).removeListener) {
+        // Safari fallback
+        (mq as any).removeListener(applyScale);
+      }
+
+      window.removeEventListener("orientationchange", applyScale);
+    };
   }, []);
 
   /* ------------------- Invite Host (Auto-click exact button) ------------------- */
@@ -438,80 +454,14 @@ function App() {
             pointerEvents: "auto",
           }}
         >
-          <SupervisingPhysicianCard
+          {/* <SupervisingPhysicianCard
             online={true}
             name="Dr. Emily Carter"
             phone="+1 (555) 123-4567"
             imageUrl="https://images.pexels.com/photos/3760852/pexels-photo-3760852.jpeg?auto=compress&cs=tinysrgb&w=400"
-          />
+          /> */}
         </div>
       )}
-
-      {/* Floating Action Bar — Bottom Center */}
-      {inMeeting && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: 10,
-            left: "50%",
-            transform: "translateX(-50%)",
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "10px 18px",
-            background: "rgba(31, 41, 55, 0.92)",
-            backdropFilter: "blur(16px)",
-            WebkitBackdropFilter: "blur(16px)",
-            borderRadius: "9999px",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
-            fontFamily: "system-ui, -apple-system, sans-serif",
-            zIndex: 999999,
-            pointerEvents: "auto",
-          }}
-        >
-          {/* Invite Host */}
-          <button
-            onClick={inviteHost}
-            disabled={hostInvited}
-            title="Invite Host"
-            style={{
-              ...btnStyle("#dc2626"),
-              opacity: hostInvited ? 0.6 : 1,
-              cursor: hostInvited ? "not-allowed" : "pointer",
-            }}
-          >
-            {hostInvited ? "Sent…" : "Invite host"}
-          </button>
-
-          {/* Mute */}
-          <button
-            onClick={toggleMute}
-            title={isMuted ? "Unmute" : "Mute"}
-            style={btnStyle(isMuted ? "#ef4444" : "#10b981")}
-          >
-            {isMuted ? "Microphone Off" : "Microphone On"}
-          </button>
-
-          {/* Video */}
-          <button
-            onClick={toggleVideo}
-            title={isVideoOn ? "Turn Camera Off" : "Turn Camera On"}
-            style={btnStyle(isVideoOn ? "#10b981" : "#6b7280")}
-          >
-            {isVideoOn ? "Video On" : "Video Off"}
-          </button>
-
-          {/* Leave */}
-          <button
-            onClick={leaveMeeting}
-            title="Leave Meeting"
-            style={btnStyle("#1f2937")}
-          >
-            Exit
-          </button>
-        </div>
-      )}
-
 
       <div
         id="zmmtg-root"
