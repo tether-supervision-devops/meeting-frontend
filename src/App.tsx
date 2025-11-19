@@ -188,59 +188,6 @@ function App() {
     return () => window.removeEventListener("message", handleMessage);
   }, []);
 
-  // Dynamically scale the Zoom root container based on iframe width
-  useEffect(() => {
-    const baseWidth = 1280; // logical Zoom width to scale from
-
-    const applyScale = () => {
-      const root = document.getElementById("zmmtg-root") as HTMLDivElement | null;
-      if (!root) return;
-
-      const containerWidth = document.documentElement.clientWidth || window.innerWidth;
-      const containerHeight = document.documentElement.clientHeight || window.innerHeight;
-
-      // Compute scale so Zoom fits the current container width
-      const scale = containerWidth / baseWidth;
-      const safeScale = !isFinite(scale) || scale <= 0 ? 1 : Math.min(scale, 1);
-
-      root.style.transformOrigin = "top left";
-      root.style.transform = `scale(${safeScale})`;
-      root.style.width = `${baseWidth}px`;
-
-      // logicalHeight * safeScale = containerHeight
-      const logicalHeight = containerHeight / safeScale;
-      root.style.height = `${logicalHeight}px`;
-      root.style.overflow = "hidden";
-    };
-
-    applyScale();
-    window.addEventListener("resize", applyScale);
-    // Listen for orientation changes via matchMedia and orientationchange
-    const mq = window.matchMedia("(orientation: portrait)");
-    if (mq && mq.addEventListener) {
-      mq.addEventListener("change", applyScale);
-    } else if (mq && (mq as any).addListener) {
-      // Safari fallback
-      (mq as any).addListener(applyScale);
-    }
-
-    window.addEventListener("orientationchange", applyScale);
-
-    return () => {
-      window.removeEventListener("resize", applyScale);
-
-      const mq = window.matchMedia("(orientation: portrait)");
-      if (mq && mq.removeEventListener) {
-        mq.removeEventListener("change", applyScale);
-      } else if (mq && (mq as any).removeListener) {
-        // Safari fallback
-        (mq as any).removeListener(applyScale);
-      }
-
-      window.removeEventListener("orientationchange", applyScale);
-    };
-  }, []);
-
   /* ------------------- Invite Host (Auto-click exact button) ------------------- */
   const inviteHost = () => {
     if (hostInvited || typeof ZoomMtg.askForHelp !== "function") return;
@@ -423,7 +370,10 @@ function App() {
         style={{
           display: "none",
           position: "fixed",
-          inset: 0,
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
           zIndex: 1,
         }}
       ></div>
